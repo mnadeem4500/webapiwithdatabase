@@ -1,53 +1,56 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
+﻿using CollegeRecorde.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
-namespace Demoapi.Controllers
+namespace CollegeRecorde.Controllers
 {
-
-    
     [Route("api/[controller]")]
     [ApiController]
     public class StudentController : ControllerBase
     {
-        static List<Student> students = new List<Student>();
-        // GET: api/<StudentController>
+        private readonly Studentdbcontext context;
+
+        public StudentController(Studentdbcontext context)
+        {
+            this.context = context;
+        }
         [HttpGet]
-        public IEnumerable<Student> Get()
+        public async Task<ActionResult<List<Student>>> GetStudent()
         {
-            return students;
-            
+            var data = await context.Students.ToListAsync();
+            return Ok(data);
         }
-
-        // GET api/<StudentController>/5
         [HttpGet("{id}")]
-        public Student Get(int id)
-        {
-            return students.FirstOrDefault(s => s.id==id);
-        }
 
-        // POST api/<StudentController>
+        public async Task<ActionResult<Student>> GetStudentbyid(int id)
+        {
+            var student = await context.Students.FindAsync(id);
+            if (student == null)
+            {
+                return NotFound();
+            }
+            return student;
+        }
         [HttpPost]
-        public void Post([FromBody] Student value)
+        public async Task<ActionResult<Student>> CreateStudent(Student std)
         {
-            students.Add(value);
-        }
+            await context.Students.AddAsync(std);
+            await context.SaveChangesAsync();
+            return Ok(std);
 
-        // PUT api/<StudentController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] Student value)
-        {
-            int i = students.FindIndex(s => s.id == id);
-            if ( i>=0)
-                students[i] = value;
         }
-
-        // DELETE api/<StudentController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpPut]
+        public async Task<ActionResult<Student>> updatestudent(int id, Student std)
         {
-            students.RemoveAll (s => s.id==id);
+            if(id!= std.id)
+            {
+                return BadRequest();
+            }
+            context.Entry(std).State = EntityState.Modified;
+            await context.SaveChangesAsync();
+            return Ok(std);
         }
     }
 }
